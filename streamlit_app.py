@@ -4,7 +4,6 @@ import matplotlib.ticker as ticker
 import numpy as np
 from fredapi import Fred
 import pandas as pd
-import io
 from datetime import datetime, timedelta
 
 # Set page config
@@ -25,13 +24,15 @@ def get_fred_data(series_id, start_date=None, end_date=None):
 def calculate_yoy_change(series):
     return series.pct_change(periods=12)
 
-def stock_market_formatter(x, p):
-    if x >= 1e6:
-        return f'${x/1e6:.1f}M'
-    elif x >= 1e3:
-        return f'${x/1e3:.0f}K'
+def custom_formatter(x, pos):
+    if abs(x) >= 1e9:
+        return f'{x/1e9:.1f}B'
+    elif abs(x) >= 1e6:
+        return f'{x/1e6:.1f}M'
+    elif abs(x) >= 1e3:
+        return f'{x/1e3:.1f}K'
     else:
-        return f'${x:.0f}'
+        return f'{x:.1f}'
 
 def plot_section(ax, title, categories, y_unit='', start_date=None, end_date=None, scale='linear', yoy_change=False):
     data = {}
@@ -41,130 +42,125 @@ def plot_section(ax, title, categories, y_unit='', start_date=None, end_date=Non
             if yoy_change:
                 series_data = calculate_yoy_change(series_data)
             data[label] = series_data
+        else:
+            st.warning(f"No data available for {label} ({series_id})")
 
-    if data:
-        df = pd.DataFrame(data)
-        df = df.dropna()  # Remove rows with missing data
-        
-        if scale == 'log':
-            ax.set_yscale('log')
-        else:
-            ax.set_yscale('linear')
-        
-        for column in df.columns:
-            ax.plot(df.index, df[column], label=column)
-        
-        ax.set_title(title, fontweight='bold')
-        ax.legend()
-        ax.grid(True, linestyle='--', alpha=0.7)
-        ax.tick_params(axis='x', rotation=45)
-        
-        # Format y-axis ticks
-        if title == "Stock Market":
-            ax.yaxis.set_major_formatter(ticker.FuncFormatter(stock_market_formatter))
-            ax.set_ylabel("S&P 500 Index Value (USD)")
-            ax.yaxis.set_major_locator(ticker.AutoLocator())
-        elif y_unit.startswith('Percentage'):
-            if "Change" in y_unit:
-                if yoy_change:
-                    ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=1, decimals=1))
-                else:
-                    ax.yaxis.set_major_formatter(ticker.PercentFormatter(decimals=1))
-                ax.set_ylabel("Year-over-Year Percentage Change (%)")
-            else:
-                ax.yaxis.set_major_formatter(ticker.PercentFormatter(decimals=1))
-                ax.set_ylabel("Percentage (%)")
-        elif y_unit.startswith('Billions'):
-            ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, p: f'${x:.1f}B'))
-            ax.set_ylabel(y_unit)
-        elif y_unit.startswith('Trillions'):
-            ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, p: f'${x:.2f}T'))
-            ax.set_ylabel(y_unit)
-        else:
-            ax.set_ylabel(y_unit)
-        
-        ax.autoscale(axis='y')
-    else:
+    if not data:
         ax.text(0.5, 0.5, "No data available", ha='center', va='center')
+        return
+
+    df = pd.DataFrame(data)
+    df = df.dropna()  # Remove rows with missing data
+    
+    if scale == 'log':
+        ax.set_yscale('log')
+    else:
+        ax.set_yscale('linear')
+    
+    for column in df.columns:
+        ax.plot(df.index, df[column], label=column)
+    
+    ax.set_title(title, fontweight='bold')
+    ax.legend()
+    ax.grid(True, linestyle='--', alpha=0.7)
+    ax.tick_params(axis='x', rotation=45)
+    
+    # Use custom formatter for y-axis
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(custom_formatter))
+    
+    if y_unit.startswith('Percentage'):
+        ax.set_ylabel("Percentage (%)")
+    else:
+        ax.set_ylabel(y_unit)
+    
+    ax.autoscale(axis='y')
+
+    # Format x-axis dates
+    ax.xaxis.set_major_locator(ticker.AutoLocator())
+    ax.xaxis.set_major_formatter(ticker.DateFormatter('%Y-%m-%d'))
 
 def create_plot(start_date=None, end_date=None):
-    plt.style.use('ggplot')
-    fig, axs = plt.subplots(4, 2, figsize=(20, 30))
-    fig.suptitle("Economic Data Visualization (FRED Data)", fontsize=24, fontweight='bold')
+    try:
+        plt.style.use('ggplot')
+        fig, axs = plt.subplots(4, 2, figsize=(20, 40))
+        fig.suptitle("Economic Data Visualization (FRED Data)", fontsize=24, fontweight='bold')
 
-    categories = {
-        "Inflation (Year-over-Year Change)": {
-            "Food": "CPIUFDSL",
-            "Shelter": "CUSR0000SAH1",
-            "Transportation": "CUSR0000SAT1",
-            "Energy": "CPIENGSL",
-        },
-        "Construction and Industrial Production (Year-over-Year Change)": {
-            "Construction Spending": "TTLCONS",
-            "Industrial Production": "INDPRO",
-        },
-        "Total Industry Capacity Utilization": {
-            "Capacity Utilization": "TCU",
-        },
-        "Social Services Spending": {
-            "Education": "G160291A027NBEA",
-            "Health": "HLTHSCPCHCSA",
-            "Social Benefits": "W823RC1",
-        },
-        "Financial Sector - Loans and Credit": {
-            "Private Loans": "BUSLOANS",
-            "Consumer Credit": "TOTALSL",
-        },
-        "Stock Market": {
-            "S&P 500": "SP500",
-        },
-        "GDP Growth (Annual)": {
-            "Real GDP": "A191RL1A225NBEA",
-        },
-        "Labor Market Indicators": {
-            "Unemployment": "UNRATE",
-            "Employment Population Ratio": "EMRATIO",
+        categories = {
+            "Inflation (Year-over-Year Change)": {
+                "Food": "CPIUFDSL",
+                "Shelter": "CUSR0000SAH1",
+                "Transportation": "CUSR0000SAT1",
+                "Energy": "CPIENGSL",
+            },
+            "Construction and Industrial Production (Year-over-Year Change)": {
+                "Construction Spending": "TTLCONS",
+                "Industrial Production": "INDPRO",
+            },
+            "Total Industry Capacity Utilization": {
+                "Capacity Utilization": "TCU",
+            },
+            "Social Services Spending": {
+                "Education": "G160291A027NBEA",
+                "Health": "HLTHSCPCHCSA",
+                "Social Benefits": "W823RC1",
+            },
+            "Financial Sector - Loans and Credit": {
+                "Private Loans": "BUSLOANS",
+                "Consumer Credit": "TOTALSL",
+            },
+            "Stock Market": {
+                "S&P 500": "SP500",
+            },
+            "GDP Growth (Annual)": {
+                "Real GDP": "A191RL1A225NBEA",
+            },
+            "Labor Market Indicators": {
+                "Unemployment": "UNRATE",
+                "Employment Population Ratio": "EMRATIO",
+            }
         }
-    }
 
-    y_units = {
-        "Inflation (Year-over-Year Change)": "Percentage Change",
-        "Construction and Industrial Production (Year-over-Year Change)": "Percentage Change",
-        "Total Industry Capacity Utilization": "Percentage",
-        "Social Services Spending": "Billions of Dollars",
-        "Financial Sector - Loans and Credit": "Billions of Dollars",
-        "Stock Market": "USD",
-        "GDP Growth (Annual)": "Percentage Change",
-        "Labor Market Indicators": "Percentage"
-    }
+        y_units = {
+            "Inflation (Year-over-Year Change)": "Percentage Change",
+            "Construction and Industrial Production (Year-over-Year Change)": "Percentage Change",
+            "Total Industry Capacity Utilization": "Percentage",
+            "Social Services Spending": "Billions of Dollars",
+            "Financial Sector - Loans and Credit": "Billions of Dollars",
+            "Stock Market": "USD",
+            "GDP Growth (Annual)": "Percentage Change",
+            "Labor Market Indicators": "Percentage"
+        }
 
-    scales = {
-        "Inflation (Year-over-Year Change)": "linear",
-        "Construction and Industrial Production (Year-over-Year Change)": "linear",
-        "Total Industry Capacity Utilization": "linear",
-        "Social Services Spending": "log",
-        "Financial Sector - Loans and Credit": "log",
-        "Stock Market": "linear",
-        "GDP Growth (Annual)": "linear",
-        "Labor Market Indicators": "linear"
-    }
+        scales = {
+            "Inflation (Year-over-Year Change)": "linear",
+            "Construction and Industrial Production (Year-over-Year Change)": "linear",
+            "Total Industry Capacity Utilization": "linear",
+            "Social Services Spending": "log",
+            "Financial Sector - Loans and Credit": "log",
+            "Stock Market": "linear",
+            "GDP Growth (Annual)": "linear",
+            "Labor Market Indicators": "linear"
+        }
 
-    yoy_change = {
-        "Inflation (Year-over-Year Change)": True,
-        "Construction and Industrial Production (Year-over-Year Change)": True,
-        "Total Industry Capacity Utilization": False,
-        "Social Services Spending": False,
-        "Financial Sector - Loans and Credit": False,
-        "Stock Market": False,
-        "GDP Growth (Annual)": False,
-        "Labor Market Indicators": False
-    }
+        yoy_change = {
+            "Inflation (Year-over-Year Change)": True,
+            "Construction and Industrial Production (Year-over-Year Change)": True,
+            "Total Industry Capacity Utilization": False,
+            "Social Services Spending": False,
+            "Financial Sector - Loans and Credit": False,
+            "Stock Market": False,
+            "GDP Growth (Annual)": False,
+            "Labor Market Indicators": False
+        }
 
-    for i, (title, category) in enumerate(categories.items()):
-        plot_section(axs[i//2, i%2], title, category, y_units[title], start_date, end_date, scale=scales[title], yoy_change=yoy_change[title])
+        for i, (title, category) in enumerate(categories.items()):
+            plot_section(axs[i//2, i%2], title, category, y_units[title], start_date, end_date, scale=scales[title], yoy_change=yoy_change[title])
 
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    return fig
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        return fig
+    except Exception as e:
+        st.error(f"Error creating plot: {str(e)}")
+        return None
 
 # Streamlit app
 st.title("Economic Data Dashboard")
@@ -175,15 +171,21 @@ st.write("Welcome to our Economic Data Dashboard. This tool provides a comprehen
 # Date range selection
 date_range = st.radio("Select Date Range", ["Full History", "Last 10 Years"])
 
-if date_range == "Full History":
-    fig = create_plot()
-else:
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=365*10)
-    fig = create_plot(start_date, end_date)
+try:
+    if date_range == "Full History":
+        fig = create_plot()
+    else:
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=365*10)
+        st.write(f"Date range: {start_date.date()} to {end_date.date()}")  # Debug info
+        fig = create_plot(start_date, end_date)
 
-# Display the plot
-st.pyplot(fig)
+    if fig is not None:
+        st.pyplot(fig)
+    else:
+        st.error("Unable to create plot. Please check the data and try again.")
+except Exception as e:
+    st.error(f"An error occurred: {str(e)}")
 
 # Add a refresh button
 if st.button("Refresh Data"):
