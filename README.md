@@ -44,6 +44,6 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## Contact
 
-Your Name - [lazar.ryan123@gmail.com](mailto:lazar.ryan123@gmail.com)
+Ryan Lazar - [lazar.ryan123@gmail.com](mailto:lazar.ryan123@gmail.com)
 
 Project Link: [https://github.com/LazarRyan/economic-data-dashboard](https://github.com/LazarRyan/economic-data-dashboard)
