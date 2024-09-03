@@ -34,7 +34,7 @@ The Economic Data Dashboard is an interactive web application that provides real
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/economic-data-dashboard.git
+   git clone https://github.com/LazarRyan/economic-data-dashboard.git
    cd economic-data-dashboard
    ```
 
