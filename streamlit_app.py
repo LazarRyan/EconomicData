@@ -24,7 +24,7 @@ def get_fred_data(series_id, start_date=None, end_date=None):
 def calculate_yoy_change(series):
     return series.pct_change(periods=12)
 
-def custom_formatter(x, pos):
+def custom_formatter(x, p):
     if abs(x) >= 1e9:
         return f'{x/1e9:.1f}B'
     elif abs(x) >= 1e6:
@@ -189,4 +189,4 @@ except Exception as e:
 
 # Add a refresh button
 if st.button("Refresh Data"):
-    st.experimental_rerun()
+    st.rerun()  # Updated from st.experimental_rerun()
