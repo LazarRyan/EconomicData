@@ -1,6 +1,7 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import matplotlib.dates as mdates
 import numpy as np
 from fredapi import Fred
 import pandas as pd
@@ -76,8 +77,8 @@ def plot_section(ax, title, categories, y_unit='', start_date=None, end_date=Non
     ax.autoscale(axis='y')
 
     # Format x-axis dates
-    ax.xaxis.set_major_locator(ticker.AutoLocator())
-    ax.xaxis.set_major_formatter(ticker.DateFormatter('%Y-%m-%d'))
+    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
 
 def create_plot(start_date=None, end_date=None):
     try:
@@ -189,4 +190,4 @@ except Exception as e:
 
 # Add a refresh button
 if st.button("Refresh Data"):
-    st.rerun()  # Updated from st.experimental_rerun()
+    st.rerun()
