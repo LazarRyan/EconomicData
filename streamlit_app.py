@@ -15,7 +15,6 @@ st.set_page_config(page_title="Economic Data Dashboard", layout="wide")
 FRED_API_KEY = os.environ.get('FRED_API_KEY')
 fred = Fred(api_key=FRED_API_KEY)
 
-# Helper functions
 def get_fred_data(series_id, start_date=None, end_date=None):
     try:
         data = fred.get_series(series_id, observation_start=start_date, observation_end=end_date)
@@ -36,7 +35,58 @@ def stock_market_formatter(x, p):
         return f'${x:.0f}'
 
 def plot_section(ax, title, categories, y_unit='', start_date=None, end_date=None, scale='linear', yoy_change=False):
-    # ... (keep the plot_section function as it is in economic_data_visualizer.py)
+    data = {}
+    for label, series_id in categories.items():
+        series_data = get_fred_data(series_id, start_date, end_date)
+        if series_data is not None and len(series_data) > 0:
+            if yoy_change:
+                series_data = calculate_yoy_change(series_data)
+            data[label] = series_data
+
+    if data:
+        df = pd.DataFrame(data)
+        df = df.dropna()  # Remove rows with missing data
+        
+        if scale == 'log':
+            ax.set_yscale('log')
+        else:
+            ax.set_yscale('linear')
+        
+        for column in df.columns:
+            ax.plot(df.index, df[column], label=column)
+        
+        ax.set_title(title, fontweight='bold')
+        ax.legend()
+        ax.grid(True, linestyle='--', alpha=0.7)
+        ax.tick_params(axis='x', rotation=45)
+        
+        # Format y-axis ticks
+        if title == "Stock Market":
+            ax.yaxis.set_major_formatter(ticker.FuncFormatter(stock_market_formatter))
+            ax.set_ylabel("S&P 500 Index Value (USD)")
+            ax.yaxis.set_major_locator(ticker.AutoLocator())
+        elif y_unit.startswith('Percentage'):
+            if "Change" in y_unit:
+                if yoy_change:
+                    ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=1, decimals=1))
+                else:
+                    ax.yaxis.set_major_formatter(ticker.PercentFormatter(decimals=1))
+                ax.set_ylabel("Year-over-Year Percentage Change (%)")
+            else:
+                ax.yaxis.set_major_formatter(ticker.PercentFormatter(decimals=1))
+                ax.set_ylabel("Percentage (%)")
+        elif y_unit.startswith('Billions'):
+            ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, p: f'${x:.1f}B'))
+            ax.set_ylabel(y_unit)
+        elif y_unit.startswith('Trillions'):
+            ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, p: f'${x:.2f}T'))
+            ax.set_ylabel(y_unit)
+        else:
+            ax.set_ylabel(y_unit)
+        
+        ax.autoscale(axis='y')
+    else:
+        ax.text(0.5, 0.5, "No data available", ha='center', va='center')
 
 def create_plot(start_date=None, end_date=None):
     plt.style.use('ggplot')
@@ -44,19 +94,71 @@ def create_plot(start_date=None, end_date=None):
     fig.suptitle("Economic Data Visualization (FRED Data)", fontsize=24, fontweight='bold')
 
     categories = {
-        # ... (keep the categories dictionary as it is)
+        "Inflation (Year-over-Year Change)": {
+            "Food": "CPIUFDSL",
+            "Shelter": "CUSR0000SAH1",
+            "Transportation": "CUSR0000SAT1",
+            "Energy": "CPIENGSL",
+        },
+        "Construction and Industrial Production (Year-over-Year Change)": {
+            "Construction Spending": "TTLCONS",
+            "Industrial Production": "INDPRO",
+        },
+        "Total Industry Capacity Utilization": {
+            "Capacity Utilization": "TCU",
+        },
+        "Social Services Spending": {
+            "Education": "G160291A027NBEA",
+            "Health": "HLTHSCPCHCSA",
+            "Social Benefits": "W823RC1",
+        },
+        "Financial Sector - Loans and Credit": {
+            "Private Loans": "BUSLOANS",
+            "Consumer Credit": "TOTALSL",
+        },
+        "Stock Market": {
+            "S&P 500": "SP500",
+        },
+        "GDP Growth (Annual)": {
+            "Real GDP": "A191RL1A225NBEA",
+        },
+        "Labor Market Indicators": {
+            "Unemployment": "UNRATE",
+            "Employment Population Ratio": "EMRATIO",
+        }
     }
 
     y_units = {
-        # ... (keep the y_units dictionary as it is)
+        "Inflation (Year-over-Year Change)": "Percentage Change",
+        "Construction and Industrial Production (Year-over-Year Change)": "Percentage Change",
+        "Total Industry Capacity Utilization": "Percentage",
+        "Social Services Spending": "Billions of Dollars",
+        "Financial Sector - Loans and Credit": "Billions of Dollars",
+        "Stock Market": "USD",
+        "GDP Growth (Annual)": "Percentage Change",
+        "Labor Market Indicators": "Percentage"
     }
 
     scales = {
-        # ... (keep the scales dictionary as it is)
+        "Inflation (Year-over-Year Change)": "linear",
+        "Construction and Industrial Production (Year-over-Year Change)": "linear",
+        "Total Industry Capacity Utilization": "linear",
+        "Social Services Spending": "log",
+        "Financial Sector - Loans and Credit": "log",
+        "Stock Market": "linear",
+        "GDP Growth (Annual)": "linear",
+        "Labor Market Indicators": "linear"
     }
 
     yoy_change = {
-        # ... (keep the yoy_change dictionary as it is)
+        "Inflation (Year-over-Year Change)": True,
+        "Construction and Industrial Production (Year-over-Year Change)": True,
+        "Total Industry Capacity Utilization": False,
+        "Social Services Spending": False,
+        "Financial Sector - Loans and Credit": False,
+        "Stock Market": False,
+        "GDP Growth (Annual)": False,
+        "Labor Market Indicators": False
     }
 
     for i, (title, category) in enumerate(categories.items()):
