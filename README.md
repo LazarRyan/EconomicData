@@ -1,5 +1,62 @@
 # EconomicData
 
+# Economic Data Dashboard
+
+## Overview
+
+The Economic Data Dashboard is an interactive web application that provides real-time insights into key economic indicators. Built with Python and Streamlit, this dashboard fetches data from the Federal Reserve Economic Data (FRED) API and presents it through intuitive visualizations.
+
+## Features
+
+- Real-time data fetching from FRED API
+- Interactive visualizations of multiple economic indicators:
+  - Inflation (Year-over-Year Change)
+  - Construction and Industrial Production
+  - Total Industry Capacity Utilization
+  - Social Services Spending
+  - Financial Sector - Loans and Credit
+  - Stock Market Performance
+  - GDP Growth (Annual)
+  - Labor Market Indicators
+- Customizable date range selection
+- Responsive design for various screen sizes
+
+## Technologies Used
+
+- Python 3.x
+- Streamlit
+- Matplotlib
+- Pandas
+- FRED API
+- NumPy
+
+## Installation
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/economic-data-dashboard.git
+   cd economic-data-dashboard
+   ```
+
+2. Install the required packages:
+   ```
+   pip install -r requirements.txt
+   ```
+
+3. Set up your FRED API key:
+   - Sign up for a FRED API key at https://fred.stlouisfed.org/docs/api/api_key.html
+   - Create a `.streamlit/secrets.toml` file in the project directory
+   - Add your API key to the file:
+     ```
+     FRED_API_KEY = "your_api_key_here"
+     ```
+
+## Usage
+
+Run the Streamlit app:
+
+streamlit run streamlit_app.py
+
 ## Project Structure
 
 - `streamlit_app.py`: Main application file containing the Streamlit app and data visualization logic
