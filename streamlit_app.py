@@ -5,14 +5,13 @@ import numpy as np
 from fredapi import Fred
 import pandas as pd
 import io
-import os
 from datetime import datetime, timedelta
 
 # Set page config
 st.set_page_config(page_title="Economic Data Dashboard", layout="wide")
 
 # FRED API setup
-FRED_API_KEY = os.environ.get('FRED_API_KEY')
+FRED_API_KEY = st.secrets["FRED_API_KEY"]
 fred = Fred(api_key=FRED_API_KEY)
 
 def get_fred_data(series_id, start_date=None, end_date=None):
