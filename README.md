@@ -44,6 +44,6 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## Contact
 
-Your Name - [your.email@example.com](mailto:your.email@example.com)
+Your Name - [lazar.ryan123@gmail.com](mailto:lazar.ryan123@gmail.com)
 
-Project Link: [https://github.com/yourusername/economic-data-dashboard](https://github.com/yourusername/economic-data-dashboard)
+Project Link: [https://github.com/LazarRyan/economic-data-dashboard](https://github.com/LazarRyan/economic-data-dashboard)
