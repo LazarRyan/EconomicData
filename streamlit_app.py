@@ -27,13 +27,13 @@ def calculate_yoy_change(series):
 
 def custom_formatter(x, p):
     if abs(x) >= 1e9:
-        return f'{x/1e9:.1f}B'
+        return f'${x/1e9:.1f}B'
     elif abs(x) >= 1e6:
-        return f'{x/1e6:.1f}M'
+        return f'${x/1e6:.1f}M'
     elif abs(x) >= 1e3:
-        return f'{x/1e3:.1f}K'
+        return f'${x/1e3:.0f}K'
     else:
-        return f'{x:.1f}'
+        return f'${x:.0f}'
 
 def plot_section(ax, title, categories, y_unit='', start_date=None, end_date=None, scale='linear', yoy_change=False):
     data = {}
@@ -41,7 +41,7 @@ def plot_section(ax, title, categories, y_unit='', start_date=None, end_date=Non
         series_data = get_fred_data(series_id, start_date, end_date)
         if series_data is not None and len(series_data) > 0:
             if yoy_change:
-                series_data = calculate_yoy_change(series_data)
+                series_data = calculate_yoy_change(series_data) * 100  # Convert to percentage
             data[label] = series_data
         else:
             st.warning(f"No data available for {label} ({series_id})")
@@ -67,11 +67,14 @@ def plot_section(ax, title, categories, y_unit='', start_date=None, end_date=Non
     ax.tick_params(axis='x', rotation=45)
     
     # Use custom formatter for y-axis
-    ax.yaxis.set_major_formatter(ticker.FuncFormatter(custom_formatter))
-    
     if y_unit.startswith('Percentage'):
+        ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, p: f'{x:.1f}%'))
         ax.set_ylabel("Percentage (%)")
+    elif y_unit == "Billions of Dollars":
+        ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, p: f'${x/1e9:.1f}B'))
+        ax.set_ylabel("Billions of Dollars ($)")
     else:
+        ax.yaxis.set_major_formatter(ticker.FuncFormatter(custom_formatter))
         ax.set_ylabel(y_unit)
     
     ax.autoscale(axis='y')
